@@ -7,16 +7,17 @@
 //!
 //! We then call [`println!`] to display `Hello, world!`.
 
-#![deny(missing_docs)]
-#![deny(warnings)]
-#![no_std]
-#![no_main]
-#![feature(panic_info_message)]
+#![deny(missing_docs)]          //编译器会在发现缺少文档注释的项时产生一个错误
+#![deny(warnings)]              //
+#![no_std]                      //不使用标准库
+#![no_main]                     //不使用Rust默认的main函数作为程序的入口点
+#![feature(panic_info_message)] //启用了一个实验性的功能，即在panic时提供额外的错误信息
+
 
 use core::arch::global_asm;
 use log::*;
 
-#[macro_use]
+#[macro_use]                    //指示编译器在当前作用域中启用宏
 mod console;
 mod lang_items;
 mod logging;
@@ -25,7 +26,11 @@ mod sbi;
 #[path = "boards/qemu.rs"]
 mod board;
 
-global_asm!(include_str!("entry.asm"));
+// 插入代码汇编代码
+/*
+ *   
+ */
+global_asm!(include_str!("entry.asm")); //插入一段汇编代码
 
 /// clear BSS segment
 pub fn clear_bss() {

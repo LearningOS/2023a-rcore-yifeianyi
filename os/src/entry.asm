@@ -1,7 +1,7 @@
-    .section .text.entry
+    .section .text.entry #
     .globl _start
 _start:
-    la sp, boot_stack_top
+    la sp, boot_stack_top #加载boot_stack_top指向的地址到 sp 中
     call rust_main
 
     .section .bss.stack
