@@ -27,10 +27,7 @@ mod sbi;
 mod board;
 
 // 插入代码汇编代码
-/*
- *   
- */
-global_asm!(include_str!("entry.asm")); //插入一段汇编代码
+global_asm!(include_str!("entry.asm"));
 
 /// clear BSS segment
 pub fn clear_bss() {
@@ -44,6 +41,7 @@ pub fn clear_bss() {
 /// the rust entry-point of os
 #[no_mangle]
 pub fn rust_main() -> ! {
+    //设置内存布局
     extern "C" {
         fn stext(); // begin addr of text segment
         fn etext(); // end addr of text segment
@@ -57,8 +55,13 @@ pub fn rust_main() -> ! {
         fn boot_stack_top(); // stack top
     }
     clear_bss();
+
+
     logging::init();
+    
     println!("[kernel] Hello, world!");
+
+    // 下面的宏是否开启，由logging::init(); 决定
     trace!(
         "[kernel] .text [{:#x}, {:#x})",
         stext as usize,
