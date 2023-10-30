@@ -10,7 +10,7 @@
     .globl __restore
     .align 2
 __alltraps:
-    csrrw sp, sscratch, sp
+    csrrw sp, sscratch, sp #sscratch == t0 ~ t6
     # now sp->kernel stack, sscratch->user stack
     # allocate a TrapContext on kernel stack
     addi sp, sp, -34*8
