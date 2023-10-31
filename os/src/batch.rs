@@ -79,7 +79,7 @@ impl AppManager {
             self.app_start[app_id] as *const u8,
             self.app_start[app_id + 1] - self.app_start[app_id],
         );
-        let app_dst = core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, app_src.len());
+        let app_dst: &mut [u8] = core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, app_src.len());
         app_dst.copy_from_slice(app_src);
         // Memory fence about fetching the instruction memory
         // It is guaranteed that a subsequent instruction fetch must
@@ -138,6 +138,7 @@ pub fn run_next_app() -> ! {
         app_manager.load_app(current_app);
     }
     app_manager.move_to_next_app();
+    println!("=================In run_next_app test==================");
     drop(app_manager);
     // before this we have to drop local variables related to resources manually
     // and release the resources

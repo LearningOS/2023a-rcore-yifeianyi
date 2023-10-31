@@ -37,7 +37,7 @@ pub mod syscall;
 pub mod trap;
 
 global_asm!(include_str!("entry.asm"));
-global_asm!(include_str!("link_app.S"));
+global_asm!(include_str!("link_app.S"));    //
 
 /// clear BSS segment
 fn clear_bss() {
@@ -87,6 +87,11 @@ pub fn rust_main() -> ! {
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+    /*===================================================================
+        
+        上面基本是一些调试和 RustSBI处理信息，可以先不管
+
+    ===================================================================*/
     trap::init();
     batch::init();
     batch::run_next_app();
