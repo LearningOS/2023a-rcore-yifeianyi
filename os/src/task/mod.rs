@@ -14,9 +14,12 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::config::MAX_APP_NUM;
+use core::panic;
+
+use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+// use crate::syscall;
 use lazy_static::*;
 use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
@@ -54,6 +57,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            sys_times: [0; MAX_SYSCALL_NUM],
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -77,7 +81,7 @@ impl TaskManager {
     /// Generally, the first task in task list is an idle task (we call it zero process later).
     /// But in ch3, we load apps statically, so the first task is a real app.
     fn run_first_task(&self) -> ! {
-        let mut inner = self.inner.exclusive_access();
+        let mut inner: core::cell::RefMut<'_, TaskManagerInner> = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
@@ -135,6 +139,36 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+
+    /// get task use syscall times
+    fn get_sys_times(&self) -> [u32; MAX_SYSCALL_NUM] {
+        let inner = TASK_MANAGER.inner.exclusive_access();
+        inner.tasks[inner.current_task].sys_times
+    }
+
+    /// calc syscall_nums
+    fn syscall_nums(&self, syscall_id:usize){
+        if syscall_id < MAX_SYSCALL_NUM{
+            let mut inner = TASK_MANAGER.inner.exclusive_access();
+            let current_task = inner.current_task;
+            inner.tasks[current_task].sys_times[syscall_id] += 1;
+        }
+        else {
+            panic!("syscall_id is Error");
+        }
+    }
+
+    
+}
+
+///
+pub fn syscall_nums(syscall_id: usize){
+    TASK_MANAGER.syscall_nums(syscall_id)
+}
+
+///
+pub fn get_sys_times()-> [u32; MAX_SYSCALL_NUM]{
+    TASK_MANAGER.get_sys_times()
 }
 
 /// Run the first task in task list.
