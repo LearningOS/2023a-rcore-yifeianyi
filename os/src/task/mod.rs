@@ -19,6 +19,8 @@ use core::panic;
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+use crate::timer::get_time_ms;
+// use crate::timer::get_time;
 // use crate::syscall;
 use lazy_static::*;
 use switch::__switch;
@@ -58,6 +60,7 @@ lazy_static! {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
             sys_times: [0; MAX_SYSCALL_NUM],
+            stime:None,
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -75,6 +78,7 @@ lazy_static! {
     };
 }
 
+// use crate::config::CLOCK_FREQ;
 impl TaskManager {
     /// Run the first task in task list.
     ///
@@ -84,7 +88,9 @@ impl TaskManager {
         let mut inner: core::cell::RefMut<'_, TaskManagerInner> = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
+        task0.stime       = Some(get_time_ms());
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
+        
         drop(inner);
         let mut _unused = TaskContext::zero_init();
         // before this, we should drop local variables that must be dropped manually
@@ -126,7 +132,11 @@ impl TaskManager {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             inner.tasks[next].task_status = TaskStatus::Running;
+            if inner.tasks[next].stime.is_none() {
+                inner.tasks[next].stime = Some(get_time_ms());
+            }
             inner.current_task = next;
+            
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
             drop(inner);
@@ -148,8 +158,9 @@ impl TaskManager {
 
     /// calc syscall_nums
     fn syscall_nums(&self, syscall_id:usize){
+        let mut inner = TASK_MANAGER.inner.exclusive_access();
         if syscall_id < MAX_SYSCALL_NUM{
-            let mut inner = TASK_MANAGER.inner.exclusive_access();
+            
             let current_task = inner.current_task;
             inner.tasks[current_task].sys_times[syscall_id] += 1;
         }
@@ -158,15 +169,26 @@ impl TaskManager {
         }
     }
 
+
+    /// get running time
+    fn get_run_time(&self) -> usize{
+        let inner = TASK_MANAGER.inner.exclusive_access();
+        get_time_ms() - inner.tasks[inner.current_task].stime.unwrap()
+    }
     
 }
 
-///
+/// get task run time
+pub fn get_run_time()->usize{
+    TASK_MANAGER.get_run_time()
+}
+
+/// calc task syscall nums
 pub fn syscall_nums(syscall_id: usize){
     TASK_MANAGER.syscall_nums(syscall_id)
 }
 
-///
+/// get task syscall times
 pub fn get_sys_times()-> [u32; MAX_SYSCALL_NUM]{
     TASK_MANAGER.get_sys_times()
 }
