@@ -1,7 +1,8 @@
 //! Types related to task management
 
-use super::TaskContext;
+// use alloc::boxed::Box;
 use crate::config::MAX_SYSCALL_NUM;
+use super::TaskContext;
 /// The task control block (TCB) of a task.
 #[derive(Copy, Clone)]
 pub struct TaskControlBlock {
@@ -10,7 +11,8 @@ pub struct TaskControlBlock {
     /// The task context
     pub task_cx: TaskContext,
     ///  Count sys_times
-    pub sys_times:[u32; MAX_SYSCALL_NUM] ,
+    // pub sys_times: Box<[u32; MAX_SYSCALL_NUM]>,
+    pub sys_times:[u32; MAX_SYSCALL_NUM],
     /// start time
     pub stime: Option<usize>,
 }

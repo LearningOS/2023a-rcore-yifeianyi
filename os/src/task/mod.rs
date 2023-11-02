@@ -48,6 +48,7 @@ pub struct TaskManager {
 pub struct TaskManagerInner {
     /// task list
     tasks: [TaskControlBlock; MAX_APP_NUM],
+    // tasks: Vec<[TaskControlBlock; MAX_APP_NUM]>,
     /// id of current `Running` task
     current_task: usize,
 }
