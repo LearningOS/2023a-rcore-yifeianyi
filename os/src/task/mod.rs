@@ -20,6 +20,7 @@ use crate::trap::TrapContext;
 use alloc::vec::Vec;
 use lazy_static::*;
 use switch::__switch;
+use crate::timer::get_time_ms;
 pub use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
@@ -69,7 +70,7 @@ lazy_static! {
         }
     };
 }
-
+use crate::config::MAX_SYSCALL_NUM;
 impl TaskManager {
     /// Run the first task in task list.
     ///
@@ -79,6 +80,7 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let next_task = &mut inner.tasks[0];
         next_task.task_status = TaskStatus::Running;
+        next_task.stime = Some(get_time_ms());
         let next_task_cx_ptr = &next_task.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
@@ -140,6 +142,9 @@ impl TaskManager {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             inner.tasks[next].task_status = TaskStatus::Running;
+            if inner.tasks[next].stime.is_none() {
+                inner.tasks[next].stime = Some(get_time_ms());
+            }
             inner.current_task = next;
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
@@ -153,6 +158,46 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+    //============================================= My job =========================================
+    /// get task use syscall times
+    fn get_sys_times(&self) -> [u32; MAX_SYSCALL_NUM] {
+        let inner = TASK_MANAGER.inner.exclusive_access();
+        inner.tasks[inner.current_task].sys_times
+    }
+
+    /// calc syscall_nums
+    fn syscall_nums(&self, syscall_id:usize){
+        let mut inner = TASK_MANAGER.inner.exclusive_access();
+        if syscall_id < MAX_SYSCALL_NUM{
+            
+            let current_task = inner.current_task;
+            inner.tasks[current_task].sys_times[syscall_id] += 1;
+        }
+        else {
+            panic!("syscall_id is Error");
+        }
+    }
+
+    /// get running time
+    fn get_run_time(&self) -> usize{
+        let inner = TASK_MANAGER.inner.exclusive_access();
+        get_time_ms() - inner.tasks[inner.current_task].stime.unwrap()
+    }
+
+}
+/// get task run time
+pub fn get_run_time()->usize{
+    TASK_MANAGER.get_run_time()
+}
+
+/// calc task syscall nums
+pub fn syscall_nums(syscall_id: usize){
+    TASK_MANAGER.syscall_nums(syscall_id)
+}
+
+/// get task syscall times
+pub fn get_sys_times()-> [u32; MAX_SYSCALL_NUM]{
+    TASK_MANAGER.get_sys_times()
 }
 
 /// Run the first task in task list.

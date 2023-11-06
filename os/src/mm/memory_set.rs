@@ -215,6 +215,7 @@ impl MemorySet {
             ),
             None,
         );
+        // 返回一个三元组: app的地址、栈顶地址、elf程序执行入口
         (
             memory_set,
             user_stack_top,
@@ -389,6 +390,7 @@ pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
 /// remap test in kernel space
 #[allow(unused)]
 pub fn remap_test() {
+    println!("==================== In remap_test ========================");
     let mut kernel_space = KERNEL_SPACE.exclusive_access();
     let mid_text: VirtAddr = ((stext as usize + etext as usize) / 2).into();
     let mid_rodata: VirtAddr = ((srodata as usize + erodata as usize) / 2).into();

@@ -103,7 +103,7 @@ pub fn trap_handler() -> ! {
 pub fn trap_return() -> ! {
     set_user_trap_entry();
     let trap_cx_ptr = TRAP_CONTEXT_BASE;
-    let user_satp = current_user_token();
+    let user_satp: usize = current_user_token();
     extern "C" {
         fn __alltraps();
         fn __restore();

@@ -1,9 +1,11 @@
 //! Process management syscalls
+// use core::iter::TakeWhile;
+
 use crate::{
     config::MAX_SYSCALL_NUM,
     task::{
-        change_program_brk, exit_current_and_run_next, suspend_current_and_run_next, TaskStatus,
-    },
+        change_program_brk, exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, current_user_token,
+    }, mm::VirtAddr,
 };
 
 #[repr(C)]
@@ -41,17 +43,50 @@ pub fn sys_yield() -> isize {
 /// YOUR JOB: get time with second and microsecond
 /// HINT: You might reimplement it with virtual memory management.
 /// HINT: What if [`TimeVal`] is splitted by two pages ?
-pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
+
+use crate::timer::get_time_us;
+// use crate::mm::pa
+use crate::mm::translated_by_token;
+pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     trace!("kernel: sys_get_time");
-    -1
+    let us = get_time_us();
+
+    let token = current_user_token();
+    let vaddr = VirtAddr::from(ts as usize);
+    let ts_paddr = translated_by_token(token, vaddr).unwrap().0 as *mut TimeVal;
+
+
+    unsafe {
+        *ts_paddr = TimeVal {
+            sec: us / 1_000_000,
+            usec: us % 1_000_000,
+        };
+    }
+
+    0
 }
 
 /// YOUR JOB: Finish sys_task_info to pass testcases
 /// HINT: You might reimplement it with virtual memory management.
 /// HINT: What if [`TaskInfo`] is splitted by two pages ?
-pub fn sys_task_info(_ti: *mut TaskInfo) -> isize {
+use crate::task::{
+    get_sys_times,get_run_time
+};
+pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     trace!("kernel: sys_task_info NOT IMPLEMENTED YET!");
-    -1
+    let token = current_user_token();
+    let vaddr = VirtAddr::from(ti as usize);
+    let ti_paddr = translated_by_token(token, vaddr).unwrap().0 as *mut TaskInfo;
+    unsafe{
+
+        *ti_paddr = TaskInfo{
+            status: TaskStatus::Running,
+            syscall_times: get_sys_times(),
+            time : get_run_time() ,
+        }
+        
+    }
+    0
 }
 
 // YOUR JOB: Implement mmap.
