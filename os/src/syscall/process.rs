@@ -5,7 +5,7 @@ use crate::{
     config::MAX_SYSCALL_NUM,
     task::{
         change_program_brk, exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, current_user_token,
-        mmap,
+        mmap,mumap,
     }, mm::VirtAddr,
 };
 
@@ -96,9 +96,9 @@ pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
 }
 
 // YOUR JOB: Implement munmap.
-pub fn sys_munmap(_start: usize, _len: usize) -> isize {
+pub fn sys_munmap(start: usize, len: usize) -> isize {
     trace!("kernel: sys_munmap NOT IMPLEMENTED YET!");
-    0
+    mumap(start, len)
 }
 /// change data segment size
 pub fn sys_sbrk(size: i32) -> isize {

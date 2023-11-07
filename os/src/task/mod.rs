@@ -218,6 +218,31 @@ impl TaskManager {
         mem_set.insert_framed_area(start_vaddr, end_vaddr, map_perm);
         0
     }
+    
+    /// mumap for task
+    fn mumap(&self, start: usize, len: usize) -> isize{
+        let start_va = VirtAddr::from(start);
+        let end_va = VirtAddr::from(start + len);
+        if !start_va.aligned() {
+            return -1;
+        }
+        let mut inner = self.inner.exclusive_access();
+        let current_task = inner.current_task;
+        let memory_set = &mut inner.tasks[current_task].memory_set;
+        let start_vpn = start_va.floor();
+        let end_vpn = end_va.ceil();
+        for vpn in VPNRange::new(start_vpn, end_vpn) {
+            if let Some(pte) = memory_set.translate(vpn) {
+                if !pte.is_valid() {
+                    return -1;
+                }
+            } else {
+                return -1;
+            }
+        }
+        memory_set.mumap(start_vpn, end_vpn);
+        0
+    }
 
 }
 
@@ -226,6 +251,12 @@ impl TaskManager {
 pub fn mmap(start: usize, len: usize, port: usize) -> isize {
     TASK_MANAGER.mmap(start, len, port)
 }
+
+/// pubilc mumap
+pub fn mumap(start: usize, len: usize) -> isize {
+    TASK_MANAGER.mumap(start, len)
+}
+
 
 /// get task run time
 pub fn get_run_time()->usize{

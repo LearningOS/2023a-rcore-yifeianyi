@@ -263,6 +263,15 @@ impl MemorySet {
             false
         }
     }
+
+    //============ My job =============
+    /// mumap interface
+    pub fn mumap(&mut self, start_vpn: VirtPageNum, end_vpn: VirtPageNum) {
+        for vpn in VPNRange::new(start_vpn, end_vpn) {
+            self.page_table.unmap(vpn);
+        }
+    }
+
 }
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
