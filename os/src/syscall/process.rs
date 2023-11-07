@@ -5,6 +5,7 @@ use crate::{
     config::MAX_SYSCALL_NUM,
     task::{
         change_program_brk, exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, current_user_token,
+        mmap,
     }, mm::VirtAddr,
 };
 
@@ -78,27 +79,26 @@ pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     let vaddr = VirtAddr::from(ti as usize);
     let ti_paddr = translated_by_token(token, vaddr).unwrap().0 as *mut TaskInfo;
     unsafe{
-
         *ti_paddr = TaskInfo{
             status: TaskStatus::Running,
             syscall_times: get_sys_times(),
             time : get_run_time() ,
         }
-        
     }
     0
 }
 
 // YOUR JOB: Implement mmap.
-pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
+pub fn sys_mmap(start: usize, len: usize, port: usize) -> isize {
     trace!("kernel: sys_mmap NOT IMPLEMENTED YET!");
-    -1
+    mmap(start, len, port)
+    // 0
 }
 
 // YOUR JOB: Implement munmap.
 pub fn sys_munmap(_start: usize, _len: usize) -> isize {
     trace!("kernel: sys_munmap NOT IMPLEMENTED YET!");
-    -1
+    0
 }
 /// change data segment size
 pub fn sys_sbrk(size: i32) -> isize {

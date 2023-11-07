@@ -14,7 +14,11 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
+// use core::panicking::panic_nounwind;
+
 use crate::loader::{get_app_data, get_num_app};
+use crate::mm::{VirtAddr, VPNRange, MapPermission};
+// use crate::mm::;
 use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
 use alloc::vec::Vec;
@@ -184,7 +188,45 @@ impl TaskManager {
         get_time_ms() - inner.tasks[inner.current_task].stime.unwrap()
     }
 
+    ///================== mmap & mumap ========================
+    /// mmap for task
+    fn mmap(&self, start: usize, len: usize, port: usize) -> isize {
+        // get virtual page
+        let start_vaddr = VirtAddr::from(start);
+        let end_vaddr = VirtAddr::from(start + len);
+        if !start_vaddr.aligned() || (port & !0x7) != 0 || (port & 0x7) == 0 {
+            return -1;
+        }
+
+        let mut inner = self.inner.exclusive_access();
+        let cur_task = inner.current_task;
+        let mem_set = &mut inner.tasks[cur_task].memory_set;
+        let start_vpn = start_vaddr.floor();
+        let end_vpn = end_vaddr.ceil();
+
+        for vpn in VPNRange::new(start_vpn, end_vpn) {
+            match  mem_set.translate(vpn){
+                Some(pte) => {
+                    if pte.is_valid() {return -1;}
+                },
+                None => (),
+            }
+        }
+
+        let port_perm = MapPermission::from_bits((port as u8) << 1).unwrap();
+        let map_perm = port_perm | MapPermission::U;
+        mem_set.insert_framed_area(start_vaddr, end_vaddr, map_perm);
+        0
+    }
+
 }
+
+
+/// public mmap
+pub fn mmap(start: usize, len: usize, port: usize) -> isize {
+    TASK_MANAGER.mmap(start, len, port)
+}
+
 /// get task run time
 pub fn get_run_time()->usize{
     TASK_MANAGER.get_run_time()
